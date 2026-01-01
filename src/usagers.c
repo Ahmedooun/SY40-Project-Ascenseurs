@@ -1,4 +1,5 @@
 #include "usagers.h"
+#include "statistiques.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -79,6 +80,8 @@ void* usagers_thread(void *arg) {
         } while (d.to == d.from);
 
         d.prio = (rand_between(&a->seed, 1, 20) == 1) ? PRIO_URGENTE : PRIO_NORMALE;
+
+        d.t_ms = now_ms();
 
         filedemandes_push(q, &d);
 
