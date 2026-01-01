@@ -1,6 +1,3 @@
-## Makefile
-
-```makefile
 CC       := gcc
 CFLAGS   := -std=c11 -Wall -Wextra -Werror -pthread -Iinclude
 LDFLAGS  := -pthread
