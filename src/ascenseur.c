@@ -1,6 +1,7 @@
 #include "ascenseur.h"
 #include "common.h"
 #include "ipc.h"
+#include "statistiques.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -12,7 +13,7 @@ void ascenseur_run(int asc_id, const IPC *ipc) {
 
     while (1) {
         MessageIPC m;
-        int r = ipc_recv_mission(ipc, asc_id, &m, 1); // bloquant
+        int r = ipc_recv_mission(ipc, asc_id, &m, 1);
         if (r != 0) continue;
 
         if (m.type == MSG_STOP) {
@@ -29,7 +30,7 @@ void ascenseur_run(int asc_id, const IPC *ipc) {
             ev.asc_id = asc_id;
             ev.data.event.evt = EVT_PANNE;
             ev.data.event.etage = -1;
-            ev.data.event.t_ms = 0;
+            ev.data.event.t_ms = now_ms();
             ipc_send_event(ipc, &ev);
             continue;
         }
@@ -43,15 +44,15 @@ void ascenseur_run(int asc_id, const IPC *ipc) {
             ev.asc_id = asc_id;
             ev.data.event.evt = EVT_REPARE;
             ev.data.event.etage = -1;
-            ev.data.event.t_ms = 0;
+            ev.data.event.t_ms = now_ms();
             ipc_send_event(ipc, &ev);
             continue;
         }
 
         if (m.type == MSG_MISSION) {
+            Demande d = m.data.mission;
+
             if (out_of_service) {
-                // V2: refus => renvoyer la demande au contrôleur
-                Demande d = m.data.mission;
                 printf("[ASC %d] Refus mission (HS) demande #%d %d->%d\n",
                        asc_id, d.id, d.from, d.to);
 
@@ -61,22 +62,22 @@ void ascenseur_run(int asc_id, const IPC *ipc) {
                 ev.data.event.evt = EVT_REFUS;
                 ev.data.event.etage = -1;
                 ev.data.event.demande = d;
-                ev.data.event.t_ms = 0;
+                ev.data.event.t_ms = now_ms();
                 ipc_send_event(ipc, &ev);
                 continue;
             }
 
-            printf("[ASC %d] mission: %d -> %d\n", asc_id, m.data.mission.from, m.data.mission.to);
+            printf("[ASC %d] mission: %d -> %d\n", asc_id, d.from, d.to);
 
-            // Simulation déplacement très simple (v1)
             sleep(1);
 
             MessageIPC ev = {0};
             ev.type = MSG_EVENT;
             ev.asc_id = asc_id;
             ev.data.event.evt = EVT_DROPOFF;
-            ev.data.event.etage = m.data.mission.to;
-            ev.data.event.t_ms = 0;
+            ev.data.event.etage = d.to;
+            ev.data.event.demande = d;     // ✅ essentiel pour stats
+            ev.data.event.t_ms = now_ms();
 
             ipc_send_event(ipc, &ev);
         }
