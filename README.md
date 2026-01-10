@@ -1,237 +1,172 @@
-# SY40 – Projet Ascenseurs
+# SY40 Projet-Ascenseurs
 
-Simulation concurrente d’un système de gestion d’ascenseurs, réalisée en C dans le cadre du module SY40 – Architecture des systèmes.
+Projet réalisé dans le cadre du module **SY40 – Architecture des systèmes**.  
+L’objectif est de simuler le fonctionnement d’un système de gestion d’ascenseurs
+en utilisant la programmation concurrente en langage C.
 
-Le projet met en œuvre des processus, threads, IPC System V, et des mécanismes de synchronisation pour simuler un immeuble avec plusieurs ascenseurs, des usagers, des pannes et des statistiques.
+---
 
-# Objectifs du projet
+## Objectifs du projet
 
-**Simuler le fonctionnement de plusieurs ascenseurs**
+- Simuler plusieurs ascenseurs dans un immeuble
+- Gérer des demandes d’usagers (automatiques ou manuelles)
+- Implémenter un algorithme de planification
+- Simuler des pannes et réparations d’ascenseurs
+- Collecter et analyser des statistiques
+- Mettre en pratique :
+  - processus (`fork`)
+  - threads (`pthread`)
+  - IPC System V
+  - mutex et variables de condition
 
-**Gérer des demandes d’usagers (automatiques ou manuelles)**
+---
 
-**Implémenter un algorithme de planification**
+## Architecture du projet
 
-**Gérer des pannes et réparations d’ascenseurs**
-
-**Collecter des statistiques de performance**
-
-**Illustrer l’utilisation de :**
-
--processus (fork)
-
--threads (pthread)
-
--files de messages System V
-
--mutex / conditions
-
--programmation concurrente
-
-# Architecture du projet
 .
 ├── include/
-│   ├── ascenseur.h
-│   ├── common.h
-│   ├── ipc.h
-│   ├── modelisation.h
-│   ├── pannes.h
-│   ├── planification.h
-│   ├── statistiques.h
-│   ├── usagers.h
-│   └── interface.h
+│ ├── ascenseur.h
+│ ├── common.h
+│ ├── ipc.h
+│ ├── modelisation.h
+│ ├── pannes.h
+│ ├── planification.h
+│ ├── statistiques.h
+│ ├── usagers.h
+│ └── interface.h
 │
 ├── src/
-│   ├── ascenseur.c
-│   ├── ipc.c
-│   ├── modelisation.c
-│   ├── pannes.c
-│   ├── planification.c
-│   ├── statistiques.c
-│   ├── usagers.c
-│   ├── interface.c
-│   └── main.c
+│ ├── ascenseur.c
+│ ├── ipc.c
+│ ├── modelisation.c
+│ ├── pannes.c
+│ ├── planification.c
+│ ├── statistiques.c
+│ ├── usagers.c
+│ ├── interface.c
+│ └── main.c
 │
 ├── Makefile
 ├── README.md
 └── stats.csv
+---
+
+## Description des modules
+
+### main
+Contrôleur central de la simulation :
+- lance les processus ascenseurs
+- lance les threads (usagers, pannes, interface)
+- traite les événements
+- gère l’arrêt propre de la simulation
+- génère les statistiques finales
 
-# Description des modules
-# main
+---
 
-Rôle de contrôleur central
+### ascenseur
+- Chaque ascenseur est un processus indépendant
+- Reçoit des missions via IPC
+- Simule les déplacements
+- Gère les pannes et réparations
+- Envoie les événements au contrôleur
 
-Lance les ascenseurs (processus)
+---
 
-Lance les threads (usagers, pannes, interface)
+### ipc
+- Encapsulation des files de messages System V
+- Communication contrôleur ↔ ascenseurs
+- Gestion des missions et des événements
 
-Gère la boucle principale
+---
 
-Traite les événements (EVT_DROPOFF, EVT_PANNE, etc.)
+### usagers
+- Génération des demandes d’ascenseurs
+- Actif uniquement en mode automatique
+- Génération pseudo-aléatoire
+- Nombre de demandes strictement limité
+- File de demandes thread-safe
 
-Déclenche l’arrêt propre et génère les statistiques
+---
 
-# ascenseur
+### planification
+- Choix de l’ascenseur le plus adapté
+- Basé sur la distance, l’état et la direction
+- Algorithme déterministe
 
-Chaque ascenseur est un processus indépendant
+---
 
-Reçoit des missions via IPC
+### pannes
+- Thread indépendant
+- Déclenchement aléatoire de pannes
+- Gestion de la réparation
+- Envoi d’événements au contrôleur
 
-Simule le déplacement
+---
 
-Gère les pannes / réparations
+### interface
+- Interface en ligne de commande
+- Fonctionne dans un thread séparé
+- Commandes disponibles :
+  - help
+  - status
+  - call <from> <to> [prio] (mode manuel)
+  - quit
+- Non bloquante
+- Permet un arrêt immédiat
 
-N’écrit jamais directement sur stdout
-→ les logs sont envoyés au contrôleur (EVT_LOG)
+---
 
-# ipc
+### modelisation
+- Définition des constantes du système
+- Validation des étages
+- Fonctions utilitaires liées au modèle de l’immeuble
 
-Encapsulation des files de messages System V
+---
 
-Envoi / réception de :
+### statistiques
+- Collecte des données de la simulation
+- Temps de réponse
+- Nombre de demandes, refus et pannes
+- Génération du fichier stats.csv
+- Affichage d’un résumé final
 
-missions
+---
 
-événements
+## Modes de simulation
 
-Séparation claire :
+### Mode automatique
+- Génération automatique des demandes
+- Scénario aléatoire à chaque exécution
+- Nombre de missions limité
+- Arrêt automatique à la fin
 
-contrôleur → ascenseurs
+### Mode manuel
+- Aucune demande automatique
+- Les demandes sont saisies par l’utilisateur
+- Arrêt avec la commande quit
 
-ascenseurs → contrôleur
+---
 
-# usagers
+## Aléatoire et reproductibilité
 
-Génère des demandes d’ascenseurs
+- Les scénarios utilisent un générateur pseudo-aléatoire
+- La seed est initialisée avec time(NULL)
+- Chaque exécution produit un scénario différent
+- La seed est affichée au démarrage
 
-Fonctionne uniquement en mode automatique
+---
 
-Génération pseudo-aléatoire
-
-Nombre de demandes strictement limité
-
-File de demandes thread-safe (mutex + conditions)
-
-# planification
-
-Choisit l’ascenseur le plus adapté à une demande
-
-Basé sur :
-
-état des ascenseurs
-
-direction
-
-distance
-
-Logique déterministe et centralisée
-
-# pannes
-
-Thread indépendant
-
-Déclenche aléatoirement des pannes
-
-Gère la durée de panne et la réparation
-
-Envoie des événements au contrôleur
-
-Peut être stoppé proprement
-
-# interface
-
-Interface en ligne de commande
-
-Fonctionne dans un thread séparé
-
-Commandes disponibles :
-
-help
-
-status
-
-call <from> <to> [prio] (mode manuel uniquement)
-
-quit
-
-Non bloquante (poll)
-
-Permet un arrêt immédiat même si la file est vide
-
-# modelisation
-
-Définit les constantes du système (immeuble, étages)
-
-Fonctions de validation (étages valides, directions)
-
-Support conceptuel de la simulation
-
-# statistiques
-
-Collecte des données :
-
-temps de réponse
-
-nombre de demandes
-
-refus
-
-pannes
-
-Génère :
-
-stats.csv
-
-résumé console en fin de simulation
-
-# Modes de simulation
- **Mode automatique**
-
-Génération automatique des demandes
-
-Scénario aléatoire à chaque exécution
-
-Nombre de missions strictement limité
-
-Arrêt automatique après la dernière mission terminée
-
- **Mode manuel**
-
-Aucune génération automatique
-
-Toutes les demandes sont saisies via l’interface
-
-Arrêt via la commande quit
-
-# Aléatoire et reproductibilité
-
-Les scénarios utilisent un générateur pseudo-aléatoire
-
-La seed est initialisée avec time(NULL)
-
-Chaque exécution produit un scénario différent
-
-La seed est affichée au démarrage pour permettre une analyse
-
-# Résultats
+## Résultats
 
 À la fin de la simulation :
+- le fichier stats.csv est généré
+- un résumé est affiché dans le terminal
+- tous les processus et threads sont arrêtés proprement
 
-**Un fichier stats.csv est généré**
+---
 
-**Un résumé statistique est affiché dans le terminal**
+## Conclusion
 
-**Tous les threads et processus sont arrêtés proprement**
-
-
-# Conclusion
-
-Ce projet illustre concrètement :
-
-**la communication inter-processus**
-
-**la synchronisation**
-
-**la gestion d’événements**
-
-**la simulation de systèmes complexes**
+Ce projet illustre l’utilisation de la programmation concurrente,
+de la communication inter-processus et de la synchronisation
+à travers la simulation d’un système d’ascenseurs.
