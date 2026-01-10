@@ -24,6 +24,14 @@ int filedemandes_init(FileDemandes *q, int cap) {
     return 0;
 }
 
+void filedemandes_stop(FileDemandes *q) {
+    pthread_mutex_lock(&q->mtx);
+    q->stop = 1;
+    pthread_cond_broadcast(&q->not_empty);
+    pthread_cond_broadcast(&q->not_full);
+    pthread_mutex_unlock(&q->mtx);
+}
+
 void filedemandes_destroy(FileDemandes *q) {
     if (!q) return;
     free(q->buffer);
@@ -62,11 +70,19 @@ void* usagers_thread(void *arg) {
     UsagersArgs *a = (UsagersArgs*)arg;
     FileDemandes *q = a->q;
 
+    int created = 0;
+
     while (1) {
+        // arrêt file
         pthread_mutex_lock(&q->mtx);
         int stop = q->stop;
         pthread_mutex_unlock(&q->mtx);
         if (stop) break;
+
+        // mode auto strict : limiter à max_demandes
+        if (a->max_demandes > 0 && created >= a->max_demandes) {
+            break;
+        }
 
         Demande d = {0};
 
@@ -83,9 +99,14 @@ void* usagers_thread(void *arg) {
 
         d.t_ms = now_ms();
 
-        filedemandes_push(q, &d);
+        if (filedemandes_push(q, &d) == 0) {
+            created++;
+        } else {
+            break;
+        }
 
         usleep((useconds_t)a->rythme_ms * 1000u);
     }
+
     return NULL;
 }
