@@ -6,6 +6,7 @@
 
 #define NB_ETAGES 10
 #define NB_ASCENSEURS 2
+#define LOG_LEN 128
 
 typedef enum {
     DIR_UP = 1,
@@ -26,12 +27,12 @@ typedef enum {
 } Priorite;
 
 typedef struct {
-    int id;              // id demande
-    int from;            // étage d'appel
-    int to;              // étage destination
-    Priorite prio;       // priorité
-    pid_t pid_usager;    // optionnel (debug)
-    uint64_t t_ms;       // optionnel (stats)
+    int id;
+    int from;
+    int to;
+    Priorite prio;
+    pid_t pid_usager;
+    uint64_t t_ms;
 } Demande;
 
 typedef struct {
@@ -39,7 +40,7 @@ typedef struct {
     int etage;
     Direction dir;
     EtatAscenseur etat;
-    int charge;          // optionnel
+    int charge;
 } Ascenseur;
 
 typedef enum {
@@ -51,25 +52,28 @@ typedef enum {
 } TypeMsg;
 
 typedef enum {
+    EVT_READY = 0,
     EVT_PICKUP = 1,
-    EVT_DROPOFF,
-    EVT_STATUS,
-    EVT_PANNE,
-    EVT_REPARE,
-    EVT_REFUS      // V2: refus d’une mission (ascenseur HS)
+    EVT_DROPOFF = 2,
+    EVT_STATUS = 3,
+    EVT_PANNE = 4,
+    EVT_REPARE = 5,
+    EVT_REFUS = 6,
+    EVT_LOG = 7          // ✅ nouveau : log centralisé
 } TypeEvent;
 
 typedef struct {
     TypeMsg type;
     int asc_id;
     union {
-        Demande mission; // pour MSG_MISSION
+        Demande mission;
 
-        struct {         // pour MSG_EVENT
+        struct {
             TypeEvent evt;
-            int etage;       // utile pour dropoff/pickup, -1 sinon
-            Demande demande; // V2: pour EVT_REFUS, on renvoie la demande complète
-            uint64_t t_ms;   // optionnel
+            int etage;
+            Demande demande;
+            uint64_t t_ms;
+            char log[LOG_LEN]; // ✅ utilisé seulement si EVT_LOG
         } event;
 
     } data;
