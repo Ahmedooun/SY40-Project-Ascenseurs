@@ -262,7 +262,6 @@ int main(void) {
         }
         if (stop_global) break;
 
-        // ✅ FIX IMPORTANT :
         // En auto, une fois que toutes les demandes ont été générées et que la file est vide,
         // NE PAS bloquer sur filedemandes_pop(), sinon on ne traite plus les EVT_DROPOFF !
         if (mode == 1 && auto_plus_de_demandes_a_attendre(&q, done, target)) {
